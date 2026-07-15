@@ -64,7 +64,7 @@ export default function BingoHelper() {
       lines,
       targetLines: TARGET_LINES,
     };
-    const updated = [newItem, ...gameHistory].slice(0, 20); // Keep last 20
+    const updated = [newItem, ...gameHistory].slice(0, 100); // Keep last 100
     setGameHistory(updated);
     localStorage.setItem('bingo_history', JSON.stringify(updated));
   };
