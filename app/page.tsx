@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Grid3X3, Beaker, FileText, ArrowRight, Sparkles, Coins, Github } from 'lucide-react';
+import { Grid3X3, Beaker, ArrowRight, Sparkles, Coins, Github } from 'lucide-react';
 import { useLanguage } from '../components/providers/LanguageProvider';
 
 export default function LandingPage() {
@@ -61,7 +61,7 @@ export default function LandingPage() {
       </div>
 
       {/* Features Grid */}
-      <div id="features" className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-32 relative">
+      <div id="features" className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-32 relative">
 
         {/* Abstract Background Elements */}
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -112,19 +112,7 @@ export default function LandingPage() {
           </div>
         </Link>
 
-        {/* Card 4: Wiki */}
-        <Link href="/wiki" className="group relative flex flex-col p-8 bg-zinc-900/30 border border-zinc-800/50 rounded-[2.5rem] hover:bg-zinc-900/60 transition-all duration-500 hover:border-purple-500/30 hover:-translate-y-2 backdrop-blur-xl overflow-hidden">
-          <div className="h-16 w-16 bg-linear-to-br from-purple-500/20 to-purple-600/5 border border-purple-500/20 text-purple-400 rounded-3xl flex items-center justify-center mb-10 shadow-lg shadow-purple-500/5 group-hover:scale-110 group-hover:-rotate-12 transition-all duration-500">
-            <FileText className="h-8 w-8" />
-          </div>
-          <h3 className="text-2xl font-black text-white mb-4 group-hover:text-purple-400 transition-colors uppercase tracking-tight">{t('landing.wikiTitle')}</h3>
-          <p className="text-zinc-400 leading-relaxed font-medium">
-            {t('landing.wikiDesc')}
-          </p>
-          <div className="mt-auto pt-8 flex items-center gap-2 text-purple-400/50 group-hover:text-purple-400 font-bold text-xs uppercase tracking-widest transition-colors">
-            {t('landing.learn')} <ArrowRight className="w-3 h-3" />
-          </div>
-        </Link>
+        {/* Wiki card is hidden for now — will return when guides are ready (see PLAN.md) */}
 
       </div>
 

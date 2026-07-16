@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/components/providers/LanguageProvider';
 import {
     Coins, Dice5, History, RotateCcw, TrendingUp, Settings2,
@@ -179,10 +179,11 @@ export default function MonopolyPage() {
         // Find current index in the loop
         let currentIdx = pathCells.findIndex(c => c.id === visPos);
 
-        // If at START (-1), user wants to enter at Cell 12.
-        // Cell 11 is right before Cell 12 in the loop array.
+        // If at START (-1): the first step enters the board at Cell 11,
+        // so START behaves as the position right before it (Cell 10).
+        // Example: roll 4 from START -> 11, 12, 13, 14 (800).
         if (currentIdx === -1) {
-            currentIdx = pathCells.findIndex(c => c.id === 11);
+            currentIdx = pathCells.findIndex(c => c.id === 10);
         }
 
         const targetIdx = (currentIdx + dice) % pathCells.length;
@@ -262,21 +263,41 @@ export default function MonopolyPage() {
         }
     };
 
-    // --- DRAG AND DROP HANDLERS ---
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-        e.dataTransfer.setData("slime_drag", "true");
+    // --- DRAG AND DROP HANDLERS (pointer events: works with mouse and touch) ---
+    const boardRef = useRef<HTMLDivElement>(null);
+    const dragStartRef = useRef<{ x: number, y: number } | null>(null);
+    const [dragOffset, setDragOffset] = useState<{ x: number, y: number } | null>(null);
+
+    const handleTokenPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (isAnimating) return;
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer may already be released */ }
+        dragStartRef.current = { x: e.clientX, y: e.clientY };
+        setDragOffset({ x: 0, y: 0 });
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>, cellId: number) => {
-        e.preventDefault();
-        const isSlime = e.dataTransfer.getData("slime_drag");
-        if (isSlime && !isAnimating) {
-            setVisPos(cellId);
-        }
+    const handleTokenPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragStartRef.current) return;
+        setDragOffset({ x: e.clientX - dragStartRef.current.x, y: e.clientY - dragStartRef.current.y });
     };
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
+    const handleTokenPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!dragStartRef.current) return;
+        dragStartRef.current = null;
+        setDragOffset(null);
+
+        const board = boardRef.current;
+        if (!board || isAnimating) return;
+        const rect = board.getBoundingClientRect();
+        // Convert pointer position to board grid coordinates (same formula as cell layout)
+        const gridX = ((e.clientX - rect.left) / rect.width) * 8.5;
+        const gridY = ((e.clientY - rect.top) / rect.height) * 7.5 - 0.5;
+        const target = CELLS.find(c => gridX >= c.x && gridX < c.x + 1 && gridY >= c.y && gridY < c.y + 1);
+        if (target) setVisPos(target.id);
+    };
+
+    const handleTokenPointerCancel = () => {
+        dragStartRef.current = null;
+        setDragOffset(null);
     };
 
 
@@ -415,7 +436,7 @@ export default function MonopolyPage() {
                         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 md:p-8 shadow-xl relative w-full flex flex-col items-center justify-center">
 
                             {/* Inner Grid Aspect Box */}
-                            <div className="relative w-full aspect-[8.5/7.5] max-w-[650px] select-none">
+                            <div ref={boardRef} className="relative w-full aspect-[8.5/7.5] max-w-[650px] select-none">
                                 {CELLS.map((cell) => {
                                     const left = `${(cell.x / 8.5) * 100}%`;
                                     const top = `${((cell.y + 0.5) / 7.5) * 100}%`; // Offset for start
@@ -426,8 +447,6 @@ export default function MonopolyPage() {
                                             key={cell.id}
                                             className="absolute p-0.5 md:p-1.5"
                                             style={{ left, top, width, height }}
-                                            onDrop={(e) => handleDrop(e, cell.id)}
-                                            onDragOver={handleDragOver}
                                         >
                                             <div className={`w-full h-full rounded border-2 md:rounded-lg md:border-[3px] shadow-sm flex flex-col items-center justify-center font-black ${getCellColor(cell.type)}`}>
                                                 {getCellIcon(cell)}
@@ -439,17 +458,21 @@ export default function MonopolyPage() {
                                     )
                                 })}
 
-                                {/* Player Token (Draggable) */}
+                                {/* Player Token (Draggable via pointer events, touch included) */}
                                 <div
-                                    className="absolute p-1.5 md:p-3 transition-all duration-200 ease-linear z-10 cursor-grab active:cursor-grabbing"
+                                    className={`absolute p-1.5 md:p-3 z-10 cursor-grab active:cursor-grabbing ${dragOffset ? '' : 'transition-all duration-200 ease-linear'}`}
                                     style={{
                                         left: `${(targetCellDef.x / 8.5) * 100}%`,
                                         top: `${((targetCellDef.y + 0.5) / 7.5) * 100}%`,
                                         width: `${100 / 8.5}%`,
-                                        height: `${100 / 7.5}%`
+                                        height: `${100 / 7.5}%`,
+                                        touchAction: 'none',
+                                        transform: dragOffset ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : undefined
                                     }}
-                                    draggable
-                                    onDragStart={handleDragStart}
+                                    onPointerDown={handleTokenPointerDown}
+                                    onPointerMove={handleTokenPointerMove}
+                                    onPointerUp={handleTokenPointerUp}
+                                    onPointerCancel={handleTokenPointerCancel}
                                 >
                                     <div className="w-full h-full relative group">
                                         {/* Slime icon representation */}
@@ -827,26 +850,26 @@ export default function MonopolyPage() {
                                             </button>
                                         ))}
                                     </>
-                                ) : modalCell.id === 9 ? (
+                                ) : modalCell.id === 8 ? (
                                     <>
-                                        <button onClick={() => handleModalSubmit('points', 1000)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-amber-300 transition-colors flex items-center justify-between px-4 text-sm">
-                                            <span>1000 {t('monopolyPage.points')}</span>
-                                            <span className="text-zinc-500 text-[10px]">+{1000 * multiplier}</span>
+                                        <button onClick={() => handleModalSubmit('30min_gold', 1, false)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-amber-500 transition-colors flex items-center justify-between px-4 text-sm">
+                                            <span>{t('monopolyPage.item_30min_gold')}</span>
+                                            <span className="text-zinc-500 text-[10px]">x{multiplier}</span>
                                         </button>
                                         <button onClick={() => handleModalSubmit('artifact_fragment', 4, false)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-blue-300 transition-colors flex items-center justify-between px-4 text-sm">
                                             <span>4x {t('monopolyPage.item_artifact_fragment')}</span>
                                             <span className="text-zinc-500 text-[10px]">x{multiplier}</span>
                                         </button>
-                                        <button onClick={() => handleModalSubmit('lair_ticket', 4, false)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-emerald-300 transition-colors flex items-center justify-between px-4 text-sm">
-                                            <span>4x {t('monopolyPage.item_lair_ticket')}</span>
-                                            <span className="text-zinc-500 text-[10px]">x{multiplier}</span>
+                                        <button onClick={() => handleModalSubmit('points', 400)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-amber-300 transition-colors flex items-center justify-between px-4 text-sm">
+                                            <span>400 {t('monopolyPage.points')}</span>
+                                            <span className="text-zinc-500 text-[10px]">+{400 * multiplier}</span>
                                         </button>
                                         <button onClick={() => handleModalSubmit('dice', 2, false)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-pink-300 transition-colors flex items-center justify-between px-4 text-sm">
                                             <span>2x {t('monopolyPage.item_dice')}</span>
                                             <span className="text-zinc-500 text-[10px]">x{multiplier}</span>
                                         </button>
-                                        <button onClick={() => handleModalSubmit('30min_gold', 1, false)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-amber-500 transition-colors flex items-center justify-between px-4 text-sm">
-                                            <span>{t('monopolyPage.item_30min_gold')}</span>
+                                        <button onClick={() => handleModalSubmit('boss_ticket', 1, false)} className="w-full py-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 rounded-lg font-bold text-red-400 transition-colors flex items-center justify-between px-4 text-sm">
+                                            <span>1x {t('monopolyPage.item_boss_ticket')}</span>
                                             <span className="text-zinc-500 text-[10px]">x{multiplier}</span>
                                         </button>
                                     </>

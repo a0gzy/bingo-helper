@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Grid3X3, Beaker, FileText, UserCircle, LogOut, Coins, Menu, X, ChevronDown } from 'lucide-react';
+import { Grid3X3, Beaker, UserCircle, LogOut, Coins, Menu, X, ChevronDown } from 'lucide-react';
 import { useLanguage } from './providers/LanguageProvider';
 import { useAuth } from './providers/AuthProvider';
 
@@ -13,7 +13,7 @@ export function Navbar() {
     const [langDropdownOpen, setLangDropdownOpen] = useState(false);
 
     const navLinks = [
-        { href: '/wiki', label: t('nav.wiki'), icon: <FileText className="h-4 w-4" /> },
+        // Wiki is hidden for now — will return when guides are ready (see PLAN.md)
         { href: '/runes', label: t('nav.runes'), icon: <Beaker className="h-4 w-4" /> },
         { href: '/bingo', label: t('nav.bingo'), icon: <Grid3X3 className="h-4 w-4" /> },
         { href: '/monopoly', label: t('nav.monopoly'), icon: <Coins className="h-4 w-4" /> },

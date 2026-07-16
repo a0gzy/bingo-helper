@@ -50,6 +50,7 @@
         "undo": "Отмена хода",
         "reset": "Новая игра",
         "history": "История игр",
+        "statsTitle": "Статистика",
         "emptyHistory": "История пока пуста",
         "clearHistory": "Очистить список",
         "heatmap": "Показать Heatmap (Веса ячеек)",

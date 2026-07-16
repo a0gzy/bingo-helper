@@ -11,6 +11,7 @@ type CompletedLine = { type: 'row' | 'col' | 'diag1' | 'diag2'; index: number };
 const SIZE = 5;
 const MAX_MOVES = 16;
 const TARGET_LINES = 4;
+const MAX_HISTORY = 120;
 
 type HistoryItem = { id: string; date: string; lines: number; targetLines: number };
 
@@ -64,7 +65,7 @@ export default function BingoHelper() {
       lines,
       targetLines: TARGET_LINES,
     };
-    const updated = [newItem, ...gameHistory].slice(0, 100); // Keep last 100
+    const updated = [newItem, ...gameHistory].slice(0, MAX_HISTORY);
     setGameHistory(updated);
     localStorage.setItem('bingo_history', JSON.stringify(updated));
   };
@@ -99,6 +100,20 @@ export default function BingoHelper() {
   };
 
   const completedIndices = completedLines.flatMap(getLineIndices);
+
+  const historyStats = {
+    total: gameHistory.length,
+    four: gameHistory.filter(h => h.lines >= 4).length,
+    three: gameHistory.filter(h => h.lines === 3).length,
+    twoOrLess: gameHistory.filter(h => h.lines <= 2).length,
+  };
+  const statPercent = (count: number) =>
+    historyStats.total ? Math.round((count / historyStats.total) * 100) : 0;
+
+  // Translations come from the external slime-castle-data repo at runtime;
+  // until statsTitle is added there, fall back to a plain literal.
+  const statsTitleRaw = t('bingoPage.statsTitle');
+  const statsTitle = statsTitleRaw === 'bingoPage.statsTitle' ? 'Stats' : statsTitleRaw;
 
   const calculateHint = (b: Board, currentMoves: number) => {
     if (currentMoves >= MAX_MOVES) {
@@ -282,19 +297,41 @@ export default function BingoHelper() {
 
             {isHistoryOpen && (
               <div className={styles.historyList}>
+                {gameHistory.length > 0 && (
+                  <div className={styles.historyStats}>
+                    <div className={styles.historyStatsTitle}>
+                      {statsTitle} ({historyStats.total})
+                    </div>
+                    <div className={styles.historyStatsRow}>
+                      {[
+                        { label: '2-', count: historyStats.twoOrLess, color: 'var(--text-muted)' },
+                        { label: '3', count: historyStats.three, color: 'var(--accent-blue)' },
+                        { label: '4', count: historyStats.four, color: 'var(--accent-green)' },
+                      ].map(s => (
+                        <div key={s.label} className={styles.statChip}>
+                          <div className={styles.statChipLabel} style={{ color: s.color }}>{s.label}</div>
+                          <div className={styles.statChipPercent}>{statPercent(s.count)}%</div>
+                          <div className={styles.statChipCount}>{s.count} / {historyStats.total}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {gameHistory.length === 0 ? (
                   <div className={styles.historyItem} style={{ justifyContent: 'center', color: 'var(--text-muted)' }}>
                     {t('bingoPage.emptyHistory')}
                   </div>
                 ) : (
-                  gameHistory.map(item => (
-                    <div key={item.id} className={styles.historyItem}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.date.split(',')[0]}</span>
-                      <span style={{ fontWeight: 600, color: item.lines >= item.targetLines ? 'var(--accent-green)' : 'var(--text-main)' }}>
-                        {item.lines} / {item.targetLines} {t('common.lines')}
-                      </span>
-                    </div>
-                  ))
+                  <div className={styles.historyScroll}>
+                    {gameHistory.map(item => (
+                      <div key={item.id} className={styles.historyItem}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{item.date.split(',')[0]}</span>
+                        <span style={{ fontWeight: 600, color: item.lines >= item.targetLines ? 'var(--accent-green)' : 'var(--text-main)' }}>
+                          {item.lines} / {item.targetLines} {t('common.lines')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {gameHistory.length > 0 && (
                   <button

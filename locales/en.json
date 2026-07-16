@@ -50,6 +50,7 @@
         "undo": "Undo Move",
         "reset": "New Game",
         "history": "Game History",
+        "statsTitle": "Stats",
         "emptyHistory": "History is empty",
         "clearHistory": "Clear List",
         "heatmap": "Show Heatmap (Cell Weights)",
